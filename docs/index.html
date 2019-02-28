@@ -25,64 +25,267 @@
 
 <h1 align="middle">CS 184: Computer Graphics and Imaging, Spring 2019</h1>
 <h1 align="middle">Project 2: Mesh Editor</h1>
-<h2 align="middle">YOUR NAME</h2>
+<h2 align="middle">Ashley Park</h2>
 
 <br><br>
 
 <div>
 
 <h2 align="middle">Overview</h2>
-<p>Give a high-level overview of what you implemented in this project. Think about what you've built as a whole. Share your thoughts on what interesting things you've learned from completing the project.</p>
+<p>In this project we played with geometric shapes! We started off with the basics by building Bezier curves in one dimension using de Casteljau's algorithm. Then we applied the same algorithm to make Bezier surfaces. We also learned meshes and topology and the half-edge data structure. We learned how to flip and split edges and used these mesh operations to finally upsample the mesh using loop subdivision to achieve better resolution.</p>
+<p>I really liked learning about the Bezier curves. I thought they were really interesting because I used inDesign a lot when I was on the yearbook staff in high school to draw graphics. I drew most of these graphics by connecting points and toggling the <i>t</i> value to create the desired curve. This was fun to learn because I would create all these drawings without really knowing the geometry and calculations behind them.</p>
+<p>Also, it was really fun to run the project and create such cool geometric figures!</p>
 
 <h2 align="middle">Section I: Bezier Curves and Surfaces</h2>
 
 <h3 align="middle">Part 1: Bezier curves with 1D de Casteljau subdivision</h3>
 
-<p>Here is an example 2x2 gridlike structure using an HTML table. Each <b>tr</b> is a row and each <b>td</b> is a column in that row. You might find this useful for framing and showing your result images in an organized fashion.</p>
+<p>de Castelijau's algorithm recursively applies linear interpolation to a set of points to define a curve. Linear interpolation basically adds a point along an edge, splitting that edge to a ratio of <i>t</i> to <i>1-t</i>, where <i>t</i> is a parameter.</p>
+<p>First, I determined which level we would be applying the algorithm to. If the level is equal to 1, or in other words, if there is only one 2D Vector in the evaluatedLevels vector, we do not need to apply the algorithm anymore. If it satisfies this boundary condition we can proceed to apply the algorithm. For every "point" in that level (x0, y0), we can linearly interpolate the x and y values of that point with the x and y values of the next point (x1, y1). "Lerp"-ing x0 with x1 gives us the new x value, and y0 & y1 give us the new y value. Finally we can create a 2D Vector with our new x and y values and push the 2D Vector into evaluatedLevels. By continuing to apply the alogirthm until the level is equal to 1, we are able to define a smooth curve.</p>
+
+<div align="middle">
+  <image src="part1_1.png" align="bottom" width="400px"/>
+  <figcaption align="left">Here is my own Bezier curve with six control points. Below is the progression from the original control points to the final evaluated point using de Castelijau's algorithm, along with the final curve.</figcaption>
+</div>
 
 <div align="middle">
   <table style="width=100%">
     <tr>
       <td>
-        <img src="images/image1.png" align="middle" width="400px"/>
-        <figcaption align="middle">Caption goes here.</figcaption>
+        <img src="part1_2.png" align="middle" width="300px"/>
+        <figcaption align="middle">Step 0</figcaption>
+
       </td>
       <td>
-        <img src="images/image2.png" align="middle" width="400px"/>
-        <figcaption align="middle">Caption goes here.</figcaption>
+        <img src="part1_3.png" align="middle" width="300px"/>
+        <figcaption align="middle">Step 1</figcaption>
+
+      </td>
+      <td>
+        <img src="part1_4.png" align="middle" width="300px"/>
+        <figcaption align="middle">Step 2</figcaption>
+
       </td>
     </tr>
     <br>
     <tr>
       <td>
-        <img src="images/image3.png" align="middle" width="400px"/>
-        <figcaption align="middle">Caption goes here.</figcaption>
+        <img src="part1_5.png" align="middle" width="300px"/>
+        <figcaption align="middle">Step 3</figcaption>
+
       </td>
       <td>
-        <img src="images/image4.png" align="middle" width="400px"/>
-        <figcaption align="middle">Caption goes here.</figcaption>
+        <img src="part1_6.png" align="middle" width="300px"/>
+        <figcaption align="middle">Step 4</figcaption>
+
+      </td>
+      <td>
+        <img src="part1_7.png" align="middle" width="300px"/>
+        <figcaption align="middle">Step 5 & Final Curve</figcaption>
       </td>
     </tr>
   </table>
 </div>
 
-
+<p>For comparison, here is a slightly different Bezier curve I created by moving some of the points around and modifying the value of <i>t</i>. </p>
+<div align="middle">
+  <image src="part1_8.png" align="bottom" width="400px"/>
+  <figcaption align="middle">Different Bezier Curve</figcaption>
+</div>
 <h3 align="middle">Part 2: Bezier surfaces with separable 1D de Casteljau subdivision</h3>
-
+<p> Now we can apply what we know about Bezier curves to higher dimensions. </p>
+<p> I used the "Separable 1D de Casteljeu Algorithm Method." To implement this method I started out by writing a helper function called evaluate1D. evaluate1D takes in a vector of 3D vectors as well as a double <i>t</i> as its parameters, and returns a 3D Vector. Given an array of four points lying on a single curve, this function evaluates the Bezier curve using 1D de Casteljau subdivision. I based by evaluate1D function on the following slide from lecture.</p>
+<div align="middle">
+  <image src="part2_1.png" align="bottom" width="500px"/>
+  <figcaption align="middle">Lecture 7: Method 1: Separable 1D de Casteljau Algorithm</figcaption>
+</div>
+<p>For this helper function we start with a vector of four starting points. From this I created three, second level points by linearly interpolating the x, y, and z values of the first starting point with the second, the second with the third, and the third with the fourth. Now with these three second level points we can do the same thing and reduce to two points. Finally by "lerp"-ing the x, y, and z values of these two points we have our final point that we return in the form of a 3D Vector.</p>
+<p>Now we can use this helper function to evaluate the Bezier surface. We are given two parameters, <i>double u</i> and <i>double v</i>. First, I iterated through all the control points and evaluated the 1D Bezier curve at parameter u. This leaves us with a vector of points. Finally, I evaluate the 1D Bezier curve with this achieved vector of points with the parameter v.</p>
+<p>Here is a rendering of a teapot using Bezier Surfaces with the Separable 1D de Casteljau Algorithm method.</p>
+<div align="middle">
+  <image src="part2_2.png" align="bottom" width="500px"/>
+  <figcaption align="middle">Teapot Bezier Surface Rendering</figcaption>
+</div>
 
 
 <h2 align="middle">Section II: Sampling</h2>
 
 <h3 align="middle">Part 3: Average normals for half-edge meshes</h3>
+<p>To make the shading more realistic, we find the approximate unit normal vector at each vertex by taking the area-weighted average of the normals of neighboring triangles, and then normalizing.</p>
+<div align="middle">
+  <image src="part3_1.png" align="bottom" width="250px"/>
+  <figcaption align="middle">Lecture 8: Half-Edge Facilitates Mesh Traversal</figcaption>
+</div>
+<p>Looking at the photo above as an example, we are trying to find the normals of neighboring triangles. To do this we must first find the positions of the three vertices for each triangle. To implement this, I first retrieved the halfedge associated with the given vertex, naming it <i>h</i>. Then I set <i>h</i> to its twin so that it would be easier to obtain the first vertex. I also created another halfedge and set it equal to <i>h</i> as a placeholder for when we iterate through all the neighboring triangles. Using a do-while loop I obtained the first vertex's position <i>v0</i>, set <i>h</i> equal to <i>h->next</i>, found the second vertex's position <i>v1</i>, and then set <i>h</i> equal to <i>h->twin</i> and retrieved the position of the third vertex <i>v2</i>. Now with our three vertex positions we can find the values of the edges that are associated with our original vertex. So we'd have one edge between our first and second vertex <i>edge01 = v1-v0</i> and another edge between our second and third vertex <i>edge12 = v2-v1</i>. Finally we can take the cross product of <i>edge01</i> and <i>edge12</i>. We do this for all the surrounding triangles, or as long as our halfedge <i>h</i> != our original placeholder, adding up the cross product values. Finally we can unit normalize the vector using the function <i>unit()</i>.</p>
 
+<p> Here are mesh renderings of a teapot with and without smoothed normals.</p>
+
+<div align="middle">
+  <table style="width=100%">
+    <tr>
+      <td>
+        <img src="part3_5.png" align="middle" width="400px"/>
+        <figcaption align="middle">Teapot rendering WITHOUT smoothed normals</figcaption>
+
+      </td>
+      <td>
+        <img src="part3_4.png" align="middle" width="400px"/>
+        <figcaption align="middle">Teapot rendering WITH smoothed normals</figcaption>
+      </td>
+    </tr>
+    <br>
+    <tr>
+      <td>
+        <img src="part3_2.png" align="middle" width="400px"/>
+        <figcaption align="middle">Teapot rendering WITHOUT smoothed normals</figcaption>
+
+      </td>
+      <td>
+        <img src="part3_3.png" align="middle" width="400px"/>
+        <figcaption align="middle">Teapot rendering WITH smoothed normals</figcaption>
+      </td>
+    </tr>
+  </table>
+</div>
 
 <h3 align="middle">Part 4: Half-edge flip</h3>
+<p>To implement the half-edge flip function I started out by checking if it is a boundary edge. If it passes the boundary condition then we move on to actually flipping the edge. I started out by drawing what I would be starting with and what I wanted to end up with. In my code I started out by retrieving the given edge's halfedge and then "labeling" all the other halfedges and twins, the faces, and vertices.</p>
+<div align="middle">
+  <image src="part4_1.png" align="bottom" width="700px"/>
+  <figcaption align="middle">Lecture 8: Half-Edge - Edge Flip</figcaption>
+</div>
+<p>I implemented this function by doing a lot of pointer reassignment, especially using the <i>setNeighbors</i> function. For all of the affected halfedges (the halfedge associated with the flipped edge, that halfedge's twin, and the four other halfedges residing inside the two triangles) I set the next, twin, vertex, edge, and face. After that, I reassigned all the vertices' and faces' associated halfedges, and then returned the flipped edge.</p>
+<p>Here is a mesh before and after some edge flips.</p>
 
+<div align="middle">
+  <table style="width=100%">
+    <tr>
+      <td>
+        <img src="part4_2.png" align="middle" width="400px"/>
+        <figcaption align="middle">Teapot rendering BEFORE some edges FLIPPED</figcaption>
+      </td>
+      <td>
+        <img src="part4_3.png" align="middle" width="400px"/>
+        <figcaption align="middle">Teapot rendering AFTER some edges FLIPPED</figcaption>
+      </td>
+    </tr>
+  </table>
+</div>
+<p>When I started doing this part of the project I struggled with being able to draw/label the mesh triangles correctly, particularly with whether or not a halfedge was inside the triangle. When I was reassigning the faces' associated halfedge, I associated one of the faces with an outside residing twin, thinking that since it belonged to the same edge as its corresponding halfedge, it didn't matter which one I chose to represent the face. So when I would try to flip an edge, one of the faces would be unassigned and it would result in holes in the mesh.</p>
+<div align="middle">
+  <image src="part4_4.png" align="bottom" width="400px"/>
+  <figcaption align="middle">Wrong face->halfedge assignment</figcaption>
+</div>
 
 <h3 align="middle">Part 5: Half-edge split</h3>
+<p>I started half-edge split similarly to how I started half-edge flip, by first drawing out the before and after, retrieving the given edge's halfedge, and then "labeling" the rest of the halfedges, twins, vertices, and faces.</p>
+<div align="middle">
+  <image src="part5_1.png" align="bottom" width="700px"/>
+  <figcaption align="middle">Lecture 8: Half-Edge - Edge Split</figcaption>
+</div>
+<p>Then I went ahead and started creating elements. First I found the position of the added vertex <i>m</i> by taking the average of vertex <i>a</i> and <i>c</i>'s position. Then I created a vertex <i>m</i> and set <i>m</i>'s position. By splitting edge cb, we have new edges am, md, and mb. The edge cm doesn't not have to be entirely created because we can modify the pointers from the old edge, cb. So I created three new edges and six new halfedges (twice the amount of new edges because of the twins). I also created two new faces. Now, similar to what I did in half-edge flip I used the setNeighbors function to assign the next, twin, vertex, edge, and face for the new/modified halfedges. Afterwards, I assigned faces', edges', and vertices' associated halfedges to the corresponding halfedges. Finally, we can return the new vertex <i>m</i>.</p>
+<p>
+  <p>Here is a mesh before and after some edge splits.</p>
 
+  <div align="middle">
+    <table style="width=100%">
+      <tr>
+        <td>
+          <img src="part5_2.png" align="middle" width="400px"/>
+          <figcaption align="middle">Teapot rendering BEFORE some edges SPLIT</figcaption>
+        </td>
+        <td>
+          <img src="part5_3.png" align="middle" width="400px"/>
+          <figcaption align="middle">Teapot rendering AFTER some edges SPLIT</figcaption>
+        </td>
+      </tr>
+    </table>
+  </div>
+<p>I had a similar problem for this part as halfedge flip where I misassigned a halfedge as a twin instead of the correct halfedge. This time it was when I was reassigning the vertices' associated halfedge. For one of my vertices I associated it with the twin instead of the right halfedge. I actually didn't notice this bug until I ran part 6. As I upsampled the mesh for the quadball I would get little dimples in the sphere.</p>
+<div align="middle">
+  <image src="part5_4.png" align="bottom" width="400px"/>
+  <figcaption align="middle">Wrong vertex->halfedge assignment</figcaption>
+</div>
 
 <h3 align="middle">Part 6: Loop subdivision for mesh upsampling</h3>
+<p>In this part of the project we are increasing the number of triangles in the mesh using loop subdivision.</p>
+<p>I started off by iterating through all the vertices in the mesh and calculating its new position using the loop subdivision rule. So for each vertex, I would sum the positions of all of its neighboring vertices in a 3D vector neighbor_position_sum, using a simlar method to when I iterated through all the surrounding triangles to normalize a vector. Then I would obtain the values for <i>n</i> and <i>u</i> by accessing the vertex's degree and then using the formula to find <i>u</i>. Next I'd store the vertex's position in a 3D Vector original_position. Now I can set the vertex's new position as ((1- (n*u))*original_position) + (u*neighbor_position_sum). Finally, we are iterating through all the original vertices, I set isNew to false.</p>
+<p>Now we must calculate the new edge position for all the edges in the mesh. The edge's position is usually the middle of the edge. While iterating through all the edges I used the halfedge data structure to obtain the positions of the edge's surrounding vertices and then set the edge's new position using the formula ((3.0/8.0)*(A+B)) + ((1.0/8.0)*(C+D)), where A, B, C, and D are the positions of surrounding vertices stored as 3D Vectors. Since this iteration is looking at all the original edges, we can set the isNew to false.</p>
+<div align="middle">
+  <image src="part6_1.png" align="bottom" width="400px"/>
+  <figcaption align="middle">New edge position</figcaption>
+</div>
+<p>Since we are going to be iterating through the original edges again I saved the last edge that we found the new position for.</p>
+<p>Now, we can split every original edge in the mesh by using iterating through mesh.edgesBegin to the last edge that we saved above. Since splitEdge returns a vertex, we can store that vertex and modify some of its attributes. That returned vertex is the new vertex, so we can set its isNew to true. SplitEdge creates new elements, so using halfedge datastructure we can set the other elements' isNew to true as well.</p>
+<div align="middle">
+  <image src="part6_2.png" align="bottom" width="700px"/>
+  <figcaption align="middle">Split edges of original mesh</figcaption>
+</div>
+<p>Now we can flip any new edge that connects an old and new vertex. So iterating through all the edges in the mesh, we first check if that edge's isNew is set to true. If the edge is new I obtained the edge's two vertices <i>v1</i> and <i>v2</i> using halfedge datastructure. Now we can check if these two vertices are one old and one new using the following if statement:</p>
+<p>if((v1->isNew==false && v2->isNew==true)|| (v1->isNew==true && v2->isNew==false))</p>
+<p>If the above is true, we flip the edge.</p>
+  <div align="middle">
+    <image src="part6_3.png" align="bottom" width="700px"/>
+    <figcaption align="middle">Flip new edges that connect a new and old vertex</figcaption>
+  </div>
+<p>Finally, we can copy the new vertex positions by iterating through all the vertices in the mesh and setting its position to the new position.</p>
+<p>Here are some screenshots that show the effects of loop subdivision on a cube.</p>
+<div align="middle">
+  <table style="width=100%">
+    <tr>
+      <td>
+        <img src="part6_4.png" align="middle" width="400px"/>
+        <figcaption align="middle">Cube Loop Subdivision Iteration 0</figcaption>
+
+      </td>
+      <td>
+        <img src="part6_5.png" align="middle" width="400px"/>
+        <figcaption align="middle">Cube Loop Subdivision Iteration 1</figcaption>
+      </td>
+    </tr>
+    <br>
+    <tr>
+      <td>
+        <img src="part6_6.png" align="middle" width="400px"/>
+        <figcaption align="middle">Cube Loop Subdivision Iteration 2</figcaption>
+
+      </td>
+      <td>
+        <img src="part6_7.png" align="middle" width="400px"/>
+        <figcaption align="middle">Cube Loop Subdivision Iteration 3</figcaption>
+      </td>
+    </tr>
+  </table>
+</div>
+<p>Loop subdivision smooths out the cube's sharp edges and the cube becomes slightly asymmetric. This is because the diagonal edges on each side of the cube. The direction the diagonals point in vary face to face. By splitting one of the diagonal edges, then each side of the cube has two diagonals, making the faces more symmetric. We can play around with pre-splitting some of the cube's edges before upping the mesh sampling to try to maintain the cube's symmetry. Here are some screenshots that show the effects of loop subdivision on a cube AFTER I manually split all of the original edges.</p>
+<div align="middle">
+  <table style="width=100%">
+    <tr>
+      <td>
+        <img src="part6_8.png" align="middle" width="400px"/>
+        <figcaption align="middle">Cube Loop Subdivision Iteration 0 (Pre split)</figcaption>
+
+      </td>
+      <td>
+        <img src="part6_9.png" align="middle" width="400px"/>
+        <figcaption align="middle">Cube Loop Subdivision Iteration 1 (Pre split)</figcaption>
+      </td>
+    </tr>
+    <br>
+    <tr>
+      <td>
+        <img src="part6_10.png" align="middle" width="400px"/>
+        <figcaption align="middle">Cube Loop Subdivision Iteration 2 (Pre split)</figcaption>
+
+      </td>
+      <td>
+        <img src="part6_11.png" align="middle" width="400px"/>
+        <figcaption align="middle">Cube Loop Subdivision Iteration 3 (Pre split)</figcaption>
+      </td>
+    </tr>
+  </table>
+</div>
+
 
 <h2 align="middle">Section III: Mesh Competition</h2>
 <p>If you are not participating in the optional mesh competition, don't worry about this section!</p>
